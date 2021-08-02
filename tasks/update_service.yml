@@ -1,0 +1,52 @@
+---
+
+- name: load ssh key
+  shell: |
+    eval `ssh-agent -s`
+    ssh-add ~/.ssh/id_rsa
+
+- name: git pull repository
+  git:
+    repo: "{{repo_link}}"
+    dest: "{{ repo_root_dir if linux_condition else windows_dir }}"
+    update: yes
+    clone: no
+    force: yes
+    accept_hostkey: yes
+    version: "{{repo_commit_sha}}"
+
+- name: install node lts
+  shell: |
+    curl -sL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'CentOS'
+
+- name: login to private registery
+  shell: |
+    echo "//npm.x.net/:_authToken={{_authToken}}
+    strict-ssl=false
+    @x:registry=https://npm.x.net
+    user=ansible" > ~/.npmrc
+
+- name: Install packages
+  npm:
+    path: "{{ linux_repo_path if linux_condition else windows_repo_path }}"
+    state: present
+
+- name: Build app
+  command: npm run build
+  args:
+    chdir: "{{ linux_repo_path if linux_condition else windows_repo_path }}"
+
+
+- name: update service on linux
+  shell: |
+    cd {{linux_repo_path}}/shared/src
+    chmod u+x x*
+    chmod u+x x*
+    service service restart
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'CentOS'
+
+- name: update service on windows
+  shell: |
+    net restart service
+  when: ansible_os_family == "Windows"

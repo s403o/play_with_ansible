@@ -1,0 +1,19 @@
+- hosts: all
+  become: false
+  
+  vars_files:
+    - [ "../default_env/secrets.yml" ]
+    
+  vars:
+    repo_name: x
+    repo_root_dir: /root/{{repo_name}}
+    linux_repo_path: "{{repo_root_dir}}/services/service"
+    repo_commit_sha: staging
+    repo_link: "git@gitlab.com://{{repo_name}}.git"
+    windows_dir: C:\{{repo_name}}
+    windows_repo_path: "{{windows_dir}}/services/service"
+    linux_condition: ansible_distribution == 'Debian' or ansible_distribution == 'CentOS' or ansible_distribution == 'Ubuntu'
+    windows_condition: ansible_os_family == "Windows" 
+
+  tasks:
+    - include: ../tasks/update_service.yml
